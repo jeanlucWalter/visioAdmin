@@ -20,6 +20,7 @@ import debug_toolbar
 
 
 urlpatterns = [
+    url(r'^visio/', include('visio.urls')),
     url(r'^admin/', admin.site.urls)
 ]
 
