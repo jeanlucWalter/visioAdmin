@@ -17,9 +17,11 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls import include, url
 import debug_toolbar
+from visio import views
 
 
 urlpatterns = [
+    url(r'^$', views.index),
     url(r'^visio/', include('visio.urls')),
     url(r'^admin/', admin.site.urls)
 ]
