@@ -16,14 +16,17 @@ Including another URLconf
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls import include, url
+# from django.urls import path
+# from django.views.generic.base import TemplateView
 import debug_toolbar
 from visio import views
 
 
 urlpatterns = [
-    url(r'^$', views.index),
+    url(r'^$', views.home, name="home"),
     url(r'^visio/', include('visio.urls')),
-    url(r'^admin/', admin.site.urls)
+    url(r'^admin/', admin.site.urls),
+    url(r'^accounts/', include('django.contrib.auth.urls')),
 ]
 
 if settings.DEBUG:

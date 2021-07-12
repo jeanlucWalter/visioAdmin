@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+  <header>
+    <aside class="dataLogin">
+      <p>{{ userName }}</p>
+      <a href="/visio/performances/?action=disconnect">Se déconnecter</a>
+    </aside>
+  </header>
+    <p>Performances</p>
+{% endblock %}
