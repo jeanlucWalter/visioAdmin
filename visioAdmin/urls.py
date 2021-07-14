@@ -23,8 +23,8 @@ from visio import views
 
 
 urlpatterns = [
-    url(r'^$', views.home, name="home"),
-    url(r'^visio/', include('visio.urls')),
+    url(r'^visio/', include(('visio.urls', 'visio'), namespace='visio')),
+    url(r'^$', views.performances, name="performances"),
     url(r'^admin/', admin.site.urls),
     url(r'^accounts/', include('django.contrib.auth.urls')),
 ]

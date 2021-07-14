@@ -5,18 +5,44 @@ from django.shortcuts import redirect
 from django.contrib import auth
 
 def home(request):
-  context = {}
   if request.user.is_authenticated:
     return redirect('/visio/performances/')
-  return redirect('/accounts/login/')
+  return redirect('/visio/login/')
 
 def performances(request):
   context = {}
   if request.method == 'GET' and 'action' in request.GET:
     if request.GET['action'] == 'disconnect':
       auth.logout(request)
+    else:
+      performancesAction(request.GET['action'], context)
+  elif request.method == 'POST' and request.POST.get('login') == "Se connecter":
+    HtlmPage = performancesLogin(request)
+    if HtlmPage: return HtlmPage
   if request.user.is_authenticated:
     context['userName'] = request.user.username
     return render(request, 'visio/performances.html', context)
-  return redirect('/accounts/login/')
-  # return render(request, 'visio/performances.html', context)
+  return redirect('/visio/login/')
+
+def performancesLogin(request):
+  userName = request.POST.get('userName')
+  password = request.POST.get('password')
+  user = auth.authenticate(username=userName, password=password)
+  if user == None:
+    context = {'userName': userName, 'password':password, 'message':"Le couple login password n'est pas conforme"}
+    return render(request, 'visio/login.html', context)
+  else:
+    context = {"userName":'', 'password':''}
+    auth.login(request, user)
+
+def performancesAction(action, context):
+  if action == "Vider la base de données":
+    context["message"] = "La base de données a été vidée"
+  elif action == "Remplir la base de données":
+    context["message"] = "La base de données a été remplie"
+  else:
+    print(action)
+    
+
+def login(request):
+  return render(request, 'visio/login.html')

@@ -1,12 +1,23 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'visio/base.html' %}
+<!-- {% load static %} -->
 
 {% block content %}
   <header>
     <aside class="dataLogin">
       <p>{{ userName }}</p>
-      <a href="/visio/performances/?action=disconnect">Se déconnecter</a>
+      <form method=get action="{% url 'visio:performances' %}">
+        {% csrf_token %}
+        <input type="submit" name="action" value="disconnect"/>
+      </form>
     </aside>
   </header>
+  <section>
     <p>Performances</p>
+    <form method=get action="{% url 'visio:performances' %}">
+      {% csrf_token %}
+      <input type="submit" name="action" value="Vider la base de données"/>
+      <input type="submit" name="action" value="Remplir la base de données"/>
+    </form>
+    <p>{{ message }}</p>
+  </section>
 {% endblock %}

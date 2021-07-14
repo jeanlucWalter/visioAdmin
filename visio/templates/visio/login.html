@@ -20,15 +20,15 @@
       <section class="loginSection">
         <article class="loginArticle">
           <h1 class="colorSiniat">Visio Admin</h1>
-          <form class="loginBox" method=post accept-charset="utf-8">
+          <form class="loginBox" method=post action="{% url 'visio:performances' %}" accept-charset="utf-8">
             {% csrf_token %}
             <div class="loginInput">
               <img class="iconStandard" src= "{% static 'visio/img/user.png' %}" alt="speudo" title="Entrer votre pseudo"/>
-              <input class="loginInput" type=text placeholder="Saisir votre pseudo"></input>
+              <input class="loginInput" name="userName" type=text placeholder="Saisir votre pseudo" value="{{ userName }}"></input>
             </div>
             <div class="loginInput">
               <img class="iconStandard" src= "{% static 'visio/img/password.png' %}" alt="speudo" title="Entrer votre pseudo"/>
-              <input class="loginInput" type=password placeholder="Saisir votre mot de passe"></input>
+              <input class="loginInput" name="password" type=password placeholder="Saisir votre mot de passe"></input>
             </div>
             <input class="loginButton" type="submit" name="login" value="Se connecter"></input>
             <p class="loginMessage">{{ message }}</p>
