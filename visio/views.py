@@ -3,6 +3,7 @@ from django.http import HttpResponse
 # from django.template import loader
 from django.shortcuts import redirect
 from django.contrib import auth
+from visio.dataModel.manageFromOldDatabase import ManageFromOldDatabase
 
 def home(request):
   if request.user.is_authenticated:
@@ -37,12 +38,15 @@ def performancesLogin(request):
 
 def performancesAction(action, context):
   if action == "Vider la base de données":
-    context["message"] = "La base de données a été vidée"
+    oldDb = ManageFromOldDatabase()
+    context["messages"] = oldDb.distroyDatabase()
+    oldDb.distroySelf()
   elif action == "Remplir la base de données":
-    context["message"] = "La base de données a été remplie"
+    oldDb = ManageFromOldDatabase()
+    context["messages"] = oldDb.populateDatabase()
+    oldDb.distroySelf()
   else:
-    print(action)
-    
+    context["messages"] = ["Action : {} inconnue".format(action)]
 
 def login(request):
   return render(request, 'visio/login.html')
