@@ -74,16 +74,39 @@ class SegmentCommercial(models.Model):
   def __str__(self) ->str:
     return self.name
 
+class Enseigne(models.Model):
+  name = models.CharField('name', max_length=64, unique=True, blank=False, default="Inconnu")
+
+  class Meta:
+    verbose_name = "Ensseigne"
+
+  def __str__(self) ->str:
+    return self.name
+
+class Ensemble(models.Model):
+  name = models.CharField('name', max_length=64, unique=True, blank=False, default="Inconnu")
+  enseigne = models.ForeignKey('enseigne', on_delete=models.PROTECT, blank=False, default=7)
+
+  class Meta:
+    verbose_name = "Ensemble"
+
+  def __str__(self) ->str:
+    return self.name
+
 class Pdv(models.Model):
   drv = models.ForeignKey('drv', on_delete=models.PROTECT,  blank=False)
   agent = models.ForeignKey('agent', on_delete=models.PROTECT, blank=False)
   dep = models.ForeignKey("dep", on_delete=models.PROTECT, blank=False)
   bassin = models.ForeignKey("bassin", on_delete=models.PROTECT, blank=False)
   ville = models.ForeignKey("ville", on_delete=models.PROTECT, blank=False)
-  code = models.CharField('code', max_length=10, unique=True)
-  name = models.CharField('name', max_length=64, unique=False)
-  segment_commercial = models.ForeignKey("segmentcommercial", on_delete=models.PROTECT, blank=False)
-  segment_marketing = models.ForeignKey("segmentmarketing", on_delete=models.PROTECT, blank=False)
+  code = models.CharField('code', max_length=10, blank=False, default="Inconnu")
+  name = models.CharField('name', max_length=64, blank=False, default="Inconnu")
+  latitude = models.FloatField('latitude', unique=False, blank=False, default=0.0)
+  longitude = models.FloatField('longitude', unique=False, blank=False, default=0.0)
+  segment_commercial = models.ForeignKey("segmentcommercial", on_delete=models.PROTECT, blank=False, default=1)
+  segment_marketing = models.ForeignKey("segmentmarketing", on_delete=models.PROTECT, blank=False, default=1)
+  enseigne = models.ForeignKey('enseigne', on_delete=models.PROTECT, blank=False, default=1)
+  ensemble = models.ForeignKey('ensemble', on_delete=models.PROTECT, blank=False, default=1)
 
   class Meta:
     verbose_name = "Point de Vente"

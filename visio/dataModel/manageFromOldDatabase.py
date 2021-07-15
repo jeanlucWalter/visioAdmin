@@ -1,8 +1,9 @@
-from codecs import backslashreplace_errors
-from re import M
+# from codecs import backslashreplace_errors
+# from re import M
+from os import name
 import mysql.connector as db
-from django.db.models import fields
-from visio.models import Pdv, Drv, Agent, Dep, Bassin, Ville, AgentFinitions, SegmentCommercial, SegmentMarketing
+# from django.db.models import fields
+from visio.models import Pdv, Drv, Agent, Dep, Bassin, Ville, AgentFinitions, SegmentCommercial, SegmentMarketing, Enseigne, Ensemble
 
 class ManageFromOldDatabase:
   fieldsPdv = []
@@ -15,7 +16,8 @@ class ManageFromOldDatabase:
   dictVille = {}
   dictSegco = {}
   dictSegment = {}
-  typeObject = {"pdv":Pdv, "agent":Agent, "agentfinitions":AgentFinitions, "dep":Dep, "drv":Drv, "bassin":Bassin, "ville":Ville, "segCo":SegmentCommercial, "segment":SegmentMarketing}
+  dictHolding = {}
+  typeObject = {"pdv":Pdv, "agent":Agent, "agentfinitions":AgentFinitions, "dep":Dep, "drv":Drv, "bassin":Bassin, "ville":Ville, "segCo":SegmentCommercial, "segment":SegmentMarketing, "unused":Ensemble, "holding":Enseigne}
   connection = None
   cursor = None
 
@@ -32,15 +34,28 @@ class ManageFromOldDatabase:
     )
     ManageFromOldDatabase.cursor = ManageFromOldDatabase.connection.cursor()
 
+    connectionNew = db.connect(
+      user = "visio.4.0",
+      password = 'aFH4l)Ux1Xo6Rws4',
+      host = "localhost",
+      database = "visio.4.0"
+    )
+    cursorNew = connectionNew.cursor()
+
     messages = []
     for _, Model in self.typeObject.items():
       Model.objects.all().delete()
-      messages.append("la table {} a été vidée.".format(Model.objects.model._meta.db_table))
+      table = Model.objects.model._meta.db_table
+      messages.append("la table {} a été vidée.".format(table))
+      query = "ALTER TABLE {} AUTO_INCREMENT=1;".format(table)
+      cursorNew.execute(query)
     return messages + ["La base de données a été vidée"]
 
   def populateDatabase(self) -> 'list(str)':
     messages = self.distroyDatabase()
-    for table, variable in [("PdvOld",[]), ("Object", ["drv"]), ("Agent", []), ("Object", ["dep"]), ("Object", ["bassin"]), ("Object", ["ville"]), ("Object", ["segCo"]), ("Object", ["segment"]), ("AgentFinitions", []), ("PdvNew", [])]:
+    for table, variable in [
+      ("PdvOld",[]), ("Object", ["drv"]), ("Agent", []), ("Object", ["dep"]), ("Object", ["bassin"]), ("Object", ["holding"]), ("Ensemble", []), ("Object", ["ville"]), ("Object", ["segCo"]), ("Object", ["segment"]),
+      ("AgentFinitions", []), ("PdvNew", [])]:
       table, error = getattr(self, "get" + table)(*variable)
       if error:
         return [error]
@@ -77,10 +92,15 @@ class ManageFromOldDatabase:
         keyValues["dep"] = self.__findObject("id_dep", self.dictDep, line, Dep)
         keyValues["bassin"] = self.__findObject("id_bassin", self.dictBassin, line, Bassin)
         keyValues["ville"] = self.__findObject("id_ville", self.dictVille, line, Ville)
+        keyValues["enseigne"] = self.__findObject("id_holding", self.dictHolding, line, Enseigne)
+        # print(self.fieldsPdv.index("ensemble"), line[self.fieldsPdv.index("ensemble")], Enseigne.objects.filter(name__iexact=line[self.fieldsPdv.index("ensemble")]))
+        keyValues["ensemble"] = Ensemble.objects.filter(name__iexact=line[self.fieldsPdv.index("ensemble")]).first()
         keyValues["segment_commercial"] = self.__findObject("id_segCo", self.dictSegco, line, SegmentCommercial)
         keyValues["segment_marketing"] = self.__findObject("id_segment", self.dictSegment, line, SegmentMarketing)
         keyValues["code"] = line[self.fieldsPdv.index("PDV code")] if line[self.fieldsPdv.index("PDV code")] else None
         keyValues["name"] = line[self.fieldsPdv.index("PDV")] if line[self.fieldsPdv.index("PDV")] else None
+        keyValues["latitude"] = line[self.fieldsPdv.index("latitude")] if line[self.fieldsPdv.index("PDV code")] else None
+        keyValues["longitude"] = line[self.fieldsPdv.index("longitude")] if line[self.fieldsPdv.index("PDV")] else None
 
         for field, object in keyValues.items():
           if object == None:
@@ -146,6 +166,55 @@ class ManageFromOldDatabase:
       if not idAgent in drvCorrespondance:
         drvCorrespondance[idAgent] = line[IndexDrv]
     return drvCorrespondance
+
+  def getEnsemble(self):
+    IndexEnsemble = self.fieldsPdv.index("ensemble")
+    IndexEnseigne = self.fieldsPdv.index("id_holding")
+    dicoEnsemble, dicoEnseigne, incr = {}, {}, 1
+    for line in self.listPdv:
+      incr += 1
+      nameEnsemble = line[IndexEnsemble]
+      idEnseigne = self.__cleanEnseigne(line[IndexEnseigne], nameEnsemble)
+      nameEnseigne = self.dictHolding[idEnseigne]
+      print(nameEnseigne, nameEnsemble)
+      if not nameEnseigne in dicoEnsemble:
+        dicoEnsemble[nameEnseigne] = []
+      if not nameEnsemble in dicoEnsemble[nameEnseigne]:
+        dicoEnsemble[nameEnseigne].append(nameEnsemble)
+        print(nameEnsemble, dicoEnsemble[nameEnseigne], incr)
+        if not nameEnseigne in dicoEnseigne:
+          existsObject = Enseigne.objects.filter(name__iexact=nameEnseigne)
+          if existsObject.exists:
+            dicoEnseigne[nameEnseigne] = existsObject.first()
+          else:
+            return (False, "Error getEnsemble : Enseigne {} does not exist".format(nameEnseigne))
+        Ensemble.objects.create(name=nameEnsemble, enseigne=dicoEnseigne[nameEnseigne])
+    return ("Ensemble", False)
+
+  def __cleanEnseigne(self, idEnseigne:int, nameEnsemble:str) ->str:
+    if nameEnsemble == "BIGMAT FRANCE": return 1
+    if nameEnsemble == "PROSPECTS AD CMEM": return 1
+    if "POINT P " in nameEnsemble: return 2
+    if "CHAUSSON MATERIAUX" in nameEnsemble: return 3
+    if "GEDIMAT" in nameEnsemble: return 11
+    if "EX-" in nameEnsemble: return 9
+    elif nameEnsemble == "DMBP": return 2
+    elif nameEnsemble == "EX-CMEM": return 9
+    elif nameEnsemble == "EX-WFBM": return 9
+    elif nameEnsemble == "EX-POINT P": return 9
+    elif nameEnsemble == "EX-POINT P": return 9
+    elif nameEnsemble == "EX-BIGMAT": return 9
+    elif nameEnsemble == "PROSPECTS SGBD FRANCE": return 2
+    elif nameEnsemble == "RÉSEAU PRO GRAND OUEST": return 13
+    elif nameEnsemble == "LITT DIFFUSION": return 5
+    elif nameEnsemble == "PANOFRANCE": return 13
+    elif nameEnsemble == "CIFFREO BONA": return 4
+    elif nameEnsemble == "UNION MATERIAUX GROUPE": return 10
+    return idEnseigne
+
+
+
+      
 
   def getObject(self, type:str):
     try:
