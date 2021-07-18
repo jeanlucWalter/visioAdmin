@@ -12,9 +12,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100;0,300;0,400;0,700;1,100;1,300;1,900&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" type="text/css" href="{% static 'visio/css/general.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'visio/css/performances.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'visio/css/dataTable.css' %}" />
+    <!-- <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css" /> -->
   </head>
   <body>
     {% block content %}
     {% endblock %}
   </body>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="{% static 'visio/js/main.js' %}"></script>
+  <script charset="utf8" src="{% static 'visio/js/dataTable.js' %}"></script>
+  <!-- <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js"></script> -->
+
 </html>

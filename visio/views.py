@@ -1,9 +1,13 @@
+from sys import prefix
 from django.shortcuts import render
 from django.http import HttpResponse
+from rest_framework.response import Response
 # from django.template import loader
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.contrib import auth
-from visio.dataModel.manageFromOldDatabase import ManageFromOldDatabase
+from visio.dataModel.manageFromOldDatabase import manageFromOldDatabase
+import json
 
 def home(request):
   if request.user.is_authenticated:
@@ -16,7 +20,8 @@ def performances(request):
     if request.GET['action'] == 'disconnect':
       auth.logout(request)
     else:
-      performancesAction(request.GET['action'], context)
+      print("query", request.GET)
+      return JsonResponse(performancesAction(request.GET['action'], request.GET))
   elif request.method == 'POST' and request.POST.get('login') == "Se connecter":
     HtlmPage = performancesLogin(request)
     if HtlmPage: return HtlmPage
@@ -36,17 +41,16 @@ def performancesLogin(request):
     context = {"userName":'', 'password':''}
     auth.login(request, user)
 
-def performancesAction(action, context):
-  if action == "Vider la base de données":
-    oldDb = ManageFromOldDatabase()
-    context["messages"] = oldDb.distroyDatabase()
-    oldDb.distroySelf()
-  elif action == "Remplir la base de données":
-    oldDb = ManageFromOldDatabase()
-    context["messages"] = oldDb.populateDatabase()
-    oldDb.distroySelf()
+def performancesAction(action, get):
+  if action == "perfEmptyBase":
+    return manageFromOldDatabase.emptyDatabase(get['start'] == 'true')
+  elif action == "perfPopulateBase":
+    if get['method'] == 'empty':
+      return manageFromOldDatabase.emptyDatabase(get['start'] == 'true')
+    else:
+      return manageFromOldDatabase.populateDatabase(get['start'] == 'true', method=get['method'])
   else:
-    context["messages"] = ["Action : {} inconnue".format(action)]
+    return {}
 
 def login(request):
   return render(request, 'visio/login.html')

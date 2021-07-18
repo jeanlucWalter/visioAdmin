@@ -93,6 +93,24 @@ class Ensemble(models.Model):
   def __str__(self) ->str:
     return self.name
 
+class SousEnsemble(models.Model):
+  name = models.CharField('name', max_length=64, unique=True, blank=False, default="Inconnu")
+
+  class Meta:
+    verbose_name = "Sous-Ensemble"
+
+  def __str__(self) ->str:
+    return self.name
+
+class Site(models.Model):
+  name = models.CharField('name', max_length=64, unique=True, blank=False, default="Inconnu")
+
+  class Meta:
+    verbose_name = "Site"
+
+  def __str__(self) ->str:
+    return self.name
+
 class Pdv(models.Model):
   drv = models.ForeignKey('drv', on_delete=models.PROTECT,  blank=False)
   agent = models.ForeignKey('agent', on_delete=models.PROTECT, blank=False)
@@ -105,8 +123,16 @@ class Pdv(models.Model):
   longitude = models.FloatField('longitude', unique=False, blank=False, default=0.0)
   segment_commercial = models.ForeignKey("segmentcommercial", on_delete=models.PROTECT, blank=False, default=1)
   segment_marketing = models.ForeignKey("segmentmarketing", on_delete=models.PROTECT, blank=False, default=1)
-  enseigne = models.ForeignKey('enseigne', on_delete=models.PROTECT, blank=False, default=1)
-  ensemble = models.ForeignKey('ensemble', on_delete=models.PROTECT, blank=False, default=1)
+  enseigne = models.ForeignKey('enseigne', on_delete=models.PROTECT, blank=False, default=7)
+  ensemble = models.ForeignKey('ensemble', on_delete=models.PROTECT, blank=False, default=43)
+  sous_ensemble = models.ForeignKey('sousensemble', on_delete=models.PROTECT, blank=False, default=1)
+  site = models.ForeignKey('site', on_delete=models.PROTECT, blank=False, default=1)
+  available = models.BooleanField(default=True)
+  sale = models.BooleanField(default=True)
+  redistributed = models.BooleanField(default=True)
+  redistributedEnduit = models.BooleanField(default=True)
+  pointFeu = models.BooleanField(default=False)
+  closedAt = models.DateTimeField('date de clôture', blank=True, null=True, default=None)
 
   class Meta:
     verbose_name = "Point de Vente"
