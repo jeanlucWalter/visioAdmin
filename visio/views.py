@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.contrib import auth
 from visio.dataModel.manageFromOldDatabase import manageFromOldDatabase
+from visio.dataModel.referentiel import Referentiel
 import json
 
 def home(request):
@@ -49,6 +50,8 @@ def performancesAction(action, get):
       return manageFromOldDatabase.emptyDatabase(get['start'] == 'true')
     else:
       return manageFromOldDatabase.populateDatabase(get['start'] == 'true', method=get['method'])
+  elif action == "perfImportRef":
+    return Referentiel.exportReferentiel()
   else:
     return {}
 

@@ -11,7 +11,7 @@ function perfEmptyBase (start) {
     $('section').empty()
   }
   $.ajax({
-    url : "visio/performances/",
+    url : "/visio/performances/",
     type : 'get',
     data : {"action":"perfEmptyBase", "csrfmiddlewaretoken":csrfmiddlewaretoken, 'start':start},
     success : function(response) {
@@ -47,7 +47,7 @@ function perfPopulateBase (start, method) {
     $("div.loader").css({display:'block'})
   }
   $.ajax({
-    url : "visio/performances/",
+    url : "/visio/performances/",
     type : 'get',
     data : {"action":"perfPopulateBase", 'method':method, 'start':start, "csrfmiddlewaretoken":csrfmiddlewaretoken},
     success : function(response) {
@@ -85,53 +85,40 @@ function perfPopulateBase (start, method) {
   })
 }
 
-function Employee ( name, position, salary, office ) {
-  this.name = name;
-  this.position = position;
-  this.salary = salary;
-  this._office = office;
-
-  this.office = function () {
-      return this._office;
-  }
-};
-
 function visualizeRef () {
+  loadReferentiel ()
+}
+
+function loadReferentiel () {
+  $('section').empty()
+  $("div.loader").css({display:'block'})
+  $.ajax({
+    url : "/visio/performances/",
+    type : 'get',
+    data : {"action":"perfImportRef", "csrfmiddlewaretoken":csrfmiddlewaretoken},
+    success : function(response) {
+      columnsTitle = []
+      $.each(response['titles'], function( _, value ) {
+        columnsTitle.push({title: value})
+      })
+      width = $('section').width()
+      console.log(width)
+      buildTable (columnsTitle, response['values'])
+      $('div.dataTables_scroll').css({'width':width+'px'})
+      $("div.loader").css({display:'none'})
+    },
+    error : function(response) {
+      console.log(response)
+      $("div.loader").css({display:'none'})
+    }
+  })
+}
+
+function buildTable (columnsTitle, values) {
   $('section').empty()
   $('section').prepend('<table id="table_id" class="display">')
-  data = [
-    {
-        "name":       "Tiger Nixon",
-        "position":   "System Architect",
-        "salary":     "$3,120",
-        "start_date": "2011/04/25",
-        "office":     "Edinburgh",
-        "extn":       "5421"
-    },
-    {
-        "name":       "Garrett Winters",
-        "position":   "Director",
-        "salary":     "$5,300",
-        "start_date": "2011/07/25",
-        "office":     "Edinburgh",
-        "extn":       "8422"
-    }
-  ]
-
-  columns = [
-    { data: 'name' },
-    { data: 'position' },
-    { data: 'salary' },
-    { data: 'office' }
-]
-
-  // columns = ['name', 'position', 'salary', 'office']
-  console.log(columns)
   $('#table_id').DataTable(
-    {
-      data: data,
-      columns: columns
-  }
-  );
+    {"scrollX": true, data: values, columns: columnsTitle}
+  )
 }
 

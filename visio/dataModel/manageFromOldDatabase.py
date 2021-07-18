@@ -2,7 +2,6 @@ from os import name
 from dateutil import tz
 from datetime import datetime
 import mysql.connector as db
-import copy
 # from django.db.models import fields
 from visio.models import Pdv, Drv, Agent, Dep, Bassin, Ville, AgentFinitions, SegmentCommercial, SegmentMarketing, Enseigne, Ensemble, SousEnsemble, Site
 
