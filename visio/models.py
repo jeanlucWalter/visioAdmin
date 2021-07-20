@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.expressions import F
 
 class Drv(models.Model):
   name = models.CharField('drv', max_length=16, unique=True)
@@ -128,14 +129,49 @@ class Pdv(models.Model):
   sous_ensemble = models.ForeignKey('sousensemble', on_delete=models.PROTECT, blank=False, default=1)
   site = models.ForeignKey('site', on_delete=models.PROTECT, blank=False, default=1)
   available = models.BooleanField(default=True)
-  sale = models.BooleanField(default=True)
-  redistributed = models.BooleanField(default=True)
-  redistributedEnduit = models.BooleanField(default=True)
-  pointFeu = models.BooleanField('point Feu', default=False)
-  closedAt = models.DateTimeField('Date de Clôture', blank=True, null=True, default=None)
+  sale = models.BooleanField("Ne vend pas de plaque", default=True)
+  redistributed = models.BooleanField("Redistribué", default=True)
+  redistributedEnduit = models.BooleanField("redistribué Enduit", default=True)
+  pointFeu = models.BooleanField('Point Feu', default=False)
+  closedAt = models.DateTimeField('Date de Fermeture', blank=True, null=True, default=None)
 
   class Meta:
     verbose_name = "Point de Vente"
 
   def __str__(self) ->str:
     return self.name + " " + self.code
+
+
+
+# Modèles pour l'AD
+
+class Produit(models.Model):
+  name = models.CharField('name', max_length=32, unique=True, blank=False, default="Inconnu")
+
+  class Meta:
+    verbose_name = "Produit"
+
+  def __str__(self) ->str:
+    return self.name
+
+class Industrie(models.Model):
+  name = models.CharField('name', max_length=32, unique=True, blank=False, default="Inconnu")
+
+  class Meta:
+    verbose_name = "Industrie"
+
+  def __str__(self) ->str:
+    return self.name
+
+class Ventes(models.Model):
+  date = models.DateTimeField('Date de Saisie', blank=True, null=True, default=None)
+  pdv = models.ForeignKey("PDV", on_delete=models.CASCADE, blank=False, default=1)
+  industry = models.ForeignKey("Industrie", on_delete=models.PROTECT, blank=False, default=17)
+  product = models.ForeignKey("Produit", on_delete=models.CASCADE, blank=False, default=6)
+  volume = models.FloatField('Volume', unique=False, blank=True, default=0.0)
+
+  class Meta:
+    verbose_name = "Ventes"
+
+  def __str__(self) ->str:
+    return str(self.pdv) + " " + str(self.industry) + " " + str(self.product)

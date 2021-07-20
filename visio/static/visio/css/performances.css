@@ -29,10 +29,10 @@ header {
 }
 
 main.performancesMain {
-  display: flex;
+  display: inline-flex;
   flex-direction: row;
   justify-content:left;
-  flex-wrap: nowrap;
+  flex-grow:1;
 }
 
 nav.performancesNav {
@@ -48,7 +48,10 @@ nav.performancesNav {
 }
 
 section {
-  flex: 1;
+  width:0;
+  flex-grow: 1;
+  flex-basis: 0;
+  /* flex: 1; */
 }
 
 #marginRight {

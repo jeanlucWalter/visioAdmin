@@ -1,9 +1,12 @@
 from os import name
+from re import I
 from dateutil import tz
 from datetime import datetime
 import mysql.connector as db
+import pytz
 # from django.db.models import fields
-from visio.models import Pdv, Drv, Agent, Dep, Bassin, Ville, AgentFinitions, SegmentCommercial, SegmentMarketing, Enseigne, Ensemble, SousEnsemble, Site
+from visio.models import Pdv, Drv, Agent, Dep, Bassin, Ville, AgentFinitions, SegmentCommercial, SegmentMarketing, Enseigne, Ensemble, \
+  SousEnsemble, Site, Produit, Industrie, Ventes
 
 class ManageFromOldDatabase:
   fieldsPdv = []
@@ -17,9 +20,12 @@ class ManageFromOldDatabase:
   dictSegco = {}
   dictSegment = {}
   dictHolding = {}
+  dictProduct = {}
+  dictIndustry = {}
   typeObject = {
-    "pdv":Pdv, "agent":Agent, "agentfinitions":AgentFinitions, "dep":Dep, "drv":Drv, "bassin":Bassin, "ville":Ville, "segCo":SegmentCommercial,
-    "segment":SegmentMarketing, "unused1":Site, "unused2":SousEnsemble, "unused3":Ensemble, "holding":Enseigne
+     "ventes":Ventes, "pdv":Pdv, "agent":Agent, "agentfinitions":AgentFinitions, "dep":Dep, "drv":Drv, "bassin":Bassin, "ville":Ville, "segCo":SegmentCommercial,
+    "segment":SegmentMarketing, "unused1":Site, "unused2":SousEnsemble, "unused3":Ensemble, "holding":Enseigne,"product":Produit,
+    "industry":Industrie
     }
   connection = None
   cursor = None
@@ -38,8 +44,10 @@ class ManageFromOldDatabase:
 
     if self.typeObjectList:
       model = self.typeObjectList.pop(0)
-      model.objects.all().delete()
       table = model.objects.model._meta.db_table
+
+      # if table in ["visio_ventes", "visio_industrie", "visio_produit"]:
+      model.objects.all().delete()
       self.cursorNew.execute("ALTER TABLE {} AUTO_INCREMENT=1;".format(table))
       return {'query':'emptyDatabase', 'message':"la table {} a été vidée.".format(table), 'end':False, 'errors':[]}
     self.connectionNew.close()
@@ -58,9 +66,12 @@ class ManageFromOldDatabase:
       self.dictPopulate = [
         ("PdvOld",[]), ("Object", ["drv"]), ("Agent", []), ("Object", ["dep"]), ("Object", ["bassin"]), ("Object", ["holding"]), ("Ensemble", []),
         ("ObjectFromPdv", ["sous-ensemble", SousEnsemble]), ("ObjectFromPdv", ["site", Site]),
-        ("Object", ["ville"]), ("Object", ["segCo"]), ("Object", ["segment"]), ("AgentFinitions", []), ("PdvNew", [])]
+        ("Object", ["ville"]), ("Object", ["segCo"]), ("Object", ["segment"]), ("AgentFinitions", []), ("PdvNew", []),
+        ("Object", ["product"]), ("Object", ["industry"]), ("Ventes", [])]
+      # self.dictPopulate = [("PdvOld",[]), ("Object", ["product"]), ("Object", ["industry"]), ("Ventes", [])]
     if self.dictPopulate:
       tableName, variable = self.dictPopulate.pop(0)
+      # print("table", "get" + tableName, variable)
       table, error = getattr(self, "get" + tableName)(*variable)
       error = [error] if error else []
       message = "L'ancienne base de données est lue" if tableName == "PdvOld" else "La table {} est remplie ".format(str(table))
@@ -99,6 +110,7 @@ class ManageFromOldDatabase:
       keyValues["enseigne"] = ensemble.enseigne
       keyValues["ensemble"] = ensemble
       keyValues["sous_ensemble"] = SousEnsemble.objects.filter(name__iexact=line[self.fieldsPdv.index("sous-ensemble")]).first()
+      keyValues["site"] = Site.objects.filter(name__iexact=line[self.fieldsPdv.index("site")]).first()
       keyValues["segment_commercial"] = self.__findObject("id_segCo", self.dictSegco, line, SegmentCommercial)
       keyValues["segment_marketing"] = self.__findObject("id_segment", self.dictSegment, line, SegmentMarketing)
       keyValues["code"] = line[self.fieldsPdv.index("PDV code")] if line[self.fieldsPdv.index("PDV code")] else None
@@ -109,7 +121,7 @@ class ManageFromOldDatabase:
       keyValues["sale"] = self.__computeBoolean(line, field="sale", valueIfNotExist="y")
       keyValues["redistributed"] = self.__computeBoolean(line, field="redistributed", valueIfNotExist="y")
       keyValues["redistributedEnduit"] = self.__computeBoolean(line, field="redistributedEnduit", valueIfNotExist="y")
-      keyValues["pointFeu"] = self.__computeBoolean(line, field="does_not_exist", valueIfNotExist="N")
+      keyValues["pointFeu"] = self.__computeBoolean(line, field="pointFeu", valueIfNotExist="O", inverse=True)
       keyValues["closedAt"] = self.__computeClosedAt(line)
 
       for field, object in keyValues.items():
@@ -122,9 +134,9 @@ class ManageFromOldDatabase:
         return (False, "Pdv {}, code {} already exists".format(keyValues["name"], keyValues["code"]))
     return ("Pdv", False)
 
-  def __computeBoolean(self, line:list, field:str, valueIfNotExist:str) -> bool:
+  def __computeBoolean(self, line:list, field:str, valueIfNotExist:str, inverse:bool=False) -> bool:
     valueFound = line[self.fieldsPdv.index(field)]
-    return valueFound != valueIfNotExist
+    return valueFound == valueIfNotExist if inverse else valueFound != valueIfNotExist
 
   def __computeClosedAt(self, line:list):
     timestamp = line[self.fieldsPdv.index("toBeClosed")]
@@ -210,11 +222,11 @@ class ManageFromOldDatabase:
 
   def __cleanEnseigne(self, idEnseigne:int, nameEnsemble:str) ->str:
     if nameEnsemble == "BIGMAT FRANCE": return 1 #CMEM
-    if nameEnsemble == "PROSPECTS AD CMEM": return 1
-    if "POINT P " in nameEnsemble: return 2 #SGBD France
-    if "CHAUSSON MATERIAUX" in nameEnsemble: return 11 #Chausson
-    if "GEDIMAT" in nameEnsemble: return 3 #Gédimat
-    if "EX-" in nameEnsemble: return 9 # Nég ancien PdV
+    elif nameEnsemble == "PROSPECTS AD CMEM": return 1
+    elif "POINT P " in nameEnsemble: return 2 #SGBD France
+    elif "CHAUSSON MATERIAUX" in nameEnsemble: return 11 #Chausson
+    elif "GEDIMAT" in nameEnsemble: return 3 #Gédimat
+    elif "EX-" in nameEnsemble: return 9 # Nég ancien PdV
     elif nameEnsemble == "DMBP": return 2 # SGBD France
     elif nameEnsemble == "PROSPECTS SGBD FRANCE": return 2  #SGBD France
     elif nameEnsemble == "RÉSEAU PRO GRAND OUEST": return 13 # Bois et matériaux
@@ -228,19 +240,19 @@ class ManageFromOldDatabase:
     return idEnseigne
 
   def getObjectFromPdv(self, field, classObject):
-    IndexSousEnsemble = self.fieldsPdv.index(field)
-    dicoSousEnsemble = ['Not assigned']
+    IndexField = self.fieldsPdv.index(field)
+    dico = ['Not assigned']
     classObject.objects.create(name='Not assigned')
     for line in self.listPdv:
-      nameSousEnsemble = line[IndexSousEnsemble]
-      if not nameSousEnsemble in dicoSousEnsemble:
-        dicoSousEnsemble.append(nameSousEnsemble)
-        classObject.objects.create(name=nameSousEnsemble)
+      nameField = line[IndexField]
+      if not nameField in dico:
+        dico.append(nameField)
+        classObject.objects.create(name=nameField)
     return (classObject.__name__, False)
 
   def getObject(self, type:str):
     try:
-      query = "SELECT id, name FROM ref_{}_1".format(type)
+      query = f"SELECT id, name FROM ref_{type}_1"
       ManageFromOldDatabase.cursor.execute(query)
       for (id, name) in ManageFromOldDatabase.cursor:
         name = self.unProtect(name)
@@ -250,7 +262,7 @@ class ManageFromOldDatabase:
         dict = getattr(self, "dict" + type.capitalize())
         dict[id] = name
     except db.Error as e:
-      return (False, "Error getObject {} {}".format(type, repr(e)))
+      return (False, f"Error getObject {type} {repr(e)}")
     return (type, False)
 
   def unProtect(self, string):
@@ -261,5 +273,33 @@ class ManageFromOldDatabase:
       string = string.replace("  ", " ")
       return string.strip()
     return string
+
+# Chargement de la table des ventes
+  def getVentes(self):
+    dictPdv = {line[0]:line for line in self.listPdv}
+    indexCode = self.fieldsPdv.index("PDV code")
+    try:
+      query = "SELECT timestamp, id_pdv, id_industry, id_product, volume FROM data_ad_1"
+      ManageFromOldDatabase.cursor.execute(query)
+      for line in ManageFromOldDatabase.cursor:
+          if line[4] != 0.0 and line[1] in dictPdv:
+            idOld = line[1]
+            code = dictPdv[idOld][indexCode]
+            pdv = Pdv.objects.filter(code=code).first() 
+            idPdvNew = Pdv.objects.filter(code=code).first().id
+            industry = self.dictIndustry[line[2]]
+            idIndustry = Industrie.objects.filter(name=industry).first().id
+            industry = Industrie.objects.filter(name=industry).first()
+            product = self.dictProduct[line[3]]
+            idProduct = Produit.objects.filter(name=product).first().id
+            product = Produit.objects.filter(name=product).first()
+            dateEvent = None
+            if line[0]:
+              dateEvent = datetime.fromtimestamp(line[0], tz=tz.gettz("Europe/Paris"))
+            Ventes.objects.create(date=dateEvent, pdv=pdv, industry=industry, product=product, volume=float(line[4]))
+
+    except db.Error as e:
+      return (False, f"Error getVentes {type} {repr(e)}")
+    return ("Ventes", False)
 
 manageFromOldDatabase = ManageFromOldDatabase() 

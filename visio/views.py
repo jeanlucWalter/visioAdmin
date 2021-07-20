@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.contrib import auth
 from visio.dataModel.manageFromOldDatabase import manageFromOldDatabase
-from visio.dataModel.referentiel import Referentiel
+from visio.dataModel.tableModel import tablePdv, tableVentes
 import json
 
 def home(request):
@@ -21,7 +21,6 @@ def performances(request):
     if request.GET['action'] == 'disconnect':
       auth.logout(request)
     else:
-      print("query", request.GET)
       return JsonResponse(performancesAction(request.GET['action'], request.GET))
   elif request.method == 'POST' and request.POST.get('login') == "Se connecter":
     HtlmPage = performancesLogin(request)
@@ -43,6 +42,7 @@ def performancesLogin(request):
     auth.login(request, user)
 
 def performancesAction(action, get):
+  print(action)
   if action == "perfEmptyBase":
     return manageFromOldDatabase.emptyDatabase(get['start'] == 'true')
   elif action == "perfPopulateBase":
@@ -50,8 +50,10 @@ def performancesAction(action, get):
       return manageFromOldDatabase.emptyDatabase(get['start'] == 'true')
     else:
       return manageFromOldDatabase.populateDatabase(get['start'] == 'true', method=get['method'])
-  elif action == "perfImportRef":
-    return Referentiel.exportReferentiel()
+  elif action == "perfImportPdv":
+    return tablePdv.json if tablePdv else {'titles':[], 'values':[]}
+  elif action == "perfImportVentes":
+    return tableVentes.json if tableVentes else {'titles':[], 'values':[]}
   else:
     return {}
 

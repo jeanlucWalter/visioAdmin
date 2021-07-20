@@ -1,9 +1,10 @@
 var csrfmiddlewaretoken = $("nav.performancesNav input[name='csrfmiddlewaretoken']").val()
-var numberOfLinesInMessage = 8
+var numberOfLinesInMessage = 20
 
 $("#PerfEmtpyBase").on('click', function(event) {perfEmptyBase(true)})
 $("#PerfPopulateBase").on('click', function(event) {perfPopulateBase(true, "empty")})
-$("#VisualizeRef").on('click', function(event) {visualizeRef()})
+$("#VisualizePdv").on('click', function(event) {visualizePdv()})
+$("#VisualizeVentes").on('click', function(event) {visualizeVentes()})
 
 function perfEmptyBase (start) {
   if (start) {
@@ -85,26 +86,30 @@ function perfPopulateBase (start, method) {
   })
 }
 
-function visualizeRef () {
-  loadReferentiel ()
+function visualizePdv () {
+  visualizeGeneric('Pdv')
 }
 
-function loadReferentiel () {
+function visualizeVentes () {
+  visualizeGeneric('Ventes')
+}
+
+
+
+function visualizeGeneric(table) {
   $('section').empty()
   $("div.loader").css({display:'block'})
   $.ajax({
     url : "/visio/performances/",
     type : 'get',
-    data : {"action":"perfImportRef", "csrfmiddlewaretoken":csrfmiddlewaretoken},
+    data : {"action":"perfImport"+table, "csrfmiddlewaretoken":csrfmiddlewaretoken},
     success : function(response) {
+      console.log(response['titles'])
       columnsTitle = []
       $.each(response['titles'], function( _, value ) {
         columnsTitle.push({title: value})
       })
-      width = $('section').width()
-      console.log(width)
-      buildTable (columnsTitle, response['values'])
-      $('div.dataTables_scroll').css({'width':width+'px'})
+      buildTable (columnsTitle, response['values'], 'table' + table)
       $("div.loader").css({display:'none'})
     },
     error : function(response) {
@@ -114,10 +119,10 @@ function loadReferentiel () {
   })
 }
 
-function buildTable (columnsTitle, values) {
+function buildTable (columnsTitle, values, tableId) {
   $('section').empty()
-  $('section').prepend('<table id="table_id" class="display">')
-  $('#table_id').DataTable(
+  $('section').prepend('<table id="'+tableId+'" class="display" style="width:100%">')
+  $('#'+tableId).DataTable(
     {"scrollX": true, data: values, columns: columnsTitle}
   )
 }
