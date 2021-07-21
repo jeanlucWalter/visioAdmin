@@ -42,7 +42,6 @@ def performancesLogin(request):
     auth.login(request, user)
 
 def performancesAction(action, get):
-  print(action)
   if action == "perfEmptyBase":
     return manageFromOldDatabase.emptyDatabase(get['start'] == 'true')
   elif action == "perfPopulateBase":
@@ -53,6 +52,7 @@ def performancesAction(action, get):
   elif action == "perfImportPdv":
     return tablePdv.json if tablePdv else {'titles':[], 'values':[]}
   elif action == "perfImportVentes":
+    print(tableVentes.json["titles"])
     return tableVentes.json if tableVentes else {'titles':[], 'values':[]}
   else:
     return {}

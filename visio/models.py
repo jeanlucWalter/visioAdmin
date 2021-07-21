@@ -172,6 +172,7 @@ class Ventes(models.Model):
 
   class Meta:
     verbose_name = "Ventes"
+    unique_together = ('pdv', 'industry', 'product')
 
   def __str__(self) ->str:
     return str(self.pdv) + " " + str(self.industry) + " " + str(self.product)

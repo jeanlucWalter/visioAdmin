@@ -1,5 +1,5 @@
 var csrfmiddlewaretoken = $("nav.performancesNav input[name='csrfmiddlewaretoken']").val()
-var numberOfLinesInMessage = 20
+var numberOfLinesInMessage = 30
 
 $("#PerfEmtpyBase").on('click', function(event) {perfEmptyBase(true)})
 $("#PerfPopulateBase").on('click', function(event) {perfPopulateBase(true, "empty")})
@@ -87,16 +87,17 @@ function perfPopulateBase (start, method) {
 }
 
 function visualizePdv () {
-  visualizeGeneric('Pdv')
+  visualizeGeneric('Pdv', scroll=true)
 }
 
 function visualizeVentes () {
-  visualizeGeneric('Ventes')
+  visualizeGeneric('Ventes', scroll=false)
 }
 
 
 
-function visualizeGeneric(table) {
+function visualizeGeneric(table, scroll=true) {
+  console.log(table, scroll)
   $('section').empty()
   $("div.loader").css({display:'block'})
   $.ajax({
@@ -109,7 +110,7 @@ function visualizeGeneric(table) {
       $.each(response['titles'], function( _, value ) {
         columnsTitle.push({title: value})
       })
-      buildTable (columnsTitle, response['values'], 'table' + table)
+      buildTable (columnsTitle, response['values'], 'table' + table, scroll)
       $("div.loader").css({display:'none'})
     },
     error : function(response) {
@@ -119,11 +120,14 @@ function visualizeGeneric(table) {
   })
 }
 
-function buildTable (columnsTitle, values, tableId) {
+function buildTable (columnsTitle, values, tableId, scroll) {
   $('section').empty()
-  $('section').prepend('<table id="'+tableId+'" class="display" style="width:100%">')
-  $('#'+tableId).DataTable(
-    {"scrollX": true, data: values, columns: columnsTitle}
-  )
+  if (scroll) {
+    $('section').prepend('<table id="'+tableId+'" class="display" style="width:100%">')
+    $('#'+tableId).DataTable({"scrollX": scroll, data: values, columns: columnsTitle})
+  } else {
+    $('section').prepend('<table id="'+tableId+'" class="display">')
+    $('#'+tableId).DataTable({data: values, columns: columnsTitle})
+  }
 }
 
