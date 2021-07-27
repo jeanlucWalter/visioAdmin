@@ -1,6 +1,7 @@
 
-import enum
+from pathlib import Path
 import re
+from json import load, dump
 
 class TableModel:
 
@@ -8,19 +9,36 @@ class TableModel:
     self.model = model
     self.__fields = model._meta.fields
     self.__objects = objects
-    self.__foreignKeyFields = [field.name for field in self.__fields if (field.many_to_one or field.one_to_one)]
-    self.__unusedFields = unsuedField
-    self.__interpretBoolean = interpretBoolean
-    self.__interpretRegeX = interpretRegX
-    self.fieldsName:list = self._computeFieldsName()
-    self.values:dict = self._computeValues()
+    pathJson = Path.cwd() / f"visio/dataValues/json/{type(self).__name__}.json"
+    if pathJson.exists():
+      with open(pathJson) as jsonFile:
+        data:dict = load(jsonFile)
+      for key, value in data.items():
+        setattr(self, key, value)
+    else:
+      self.foreignKeyFields = [field.name for field in self.__fields if (field.many_to_one or field.one_to_one)]
+      self.unusedFields = unsuedField
+      self.interpretBoolean = interpretBoolean
+      self.interpretRegeX = interpretRegX
+      self.fieldsName:list = self._computeFieldsName()
+      self.values:dict = self._computeValues()
+      jsonSave = {}
+      print(dir(self))
+      for attrName in ["foreignKeyFields", "unusedFields", "interpretBoolean", "interpretRegeX", "fieldsName", "values"]:
+        jsonSave[attrName] = getattr(self, attrName)
+      with open(pathJson, 'w') as jsonFile:
+        dump(jsonSave, jsonFile, indent = 3)
+      
+
+  # def __str__(self):
+  #   return f"table{object.__str__(self.model)}"
 
   @property
   def json(self):
     return {'titles':self.fieldsName, 'values':list(self.values.values()), 'tableIndex':list(self.values.keys())}
 
   def _computeValues(self, idPdv:bool = False):
-    fieldsName = [field.name for field in self.__fields if not field.name in self.__unusedFields]
+    fieldsName = [field.name for field in self.__fields if not field.name in self.unusedFields]
     values = {}
     for object in self.__objects:
       id = object.id
@@ -29,23 +47,23 @@ class TableModel:
     return values
 
   def __computeRelations(self, fieldName:str, object, idPdv:bool):
-    if fieldName in self.__foreignKeyFields:
+    if fieldName in self.foreignKeyFields:
       value = getattr(object, fieldName).id if (fieldName == "pdv" and idPdv) else getattr(object, fieldName).name
     else:
       value = getattr(object, fieldName)
-    if fieldName in self.__interpretBoolean:
-      return self.__interpretBoolean[fieldName][1] if value else self.__interpretBoolean[fieldName][0]
-    elif fieldName in self.__interpretRegeX:
-      return re.search(self.__interpretRegeX[fieldName], str(value)).group(1) if value else ""
+    if fieldName in self.interpretBoolean:
+      return self.interpretBoolean[fieldName][1] if value else self.interpretBoolean[fieldName][0]
+    elif fieldName in self.interpretRegeX:
+      return re.search(self.interpretRegeX[fieldName], str(value)).group(1) if value else ""
     return value
 
   def _computeFieldsName(self):
-    return [self.__computeFieldsName(field.name) for field in self.__fields if not field.name in self.__unusedFields]
+    return [self.__computeFieldsName(field.name) for field in self.__fields if not field.name in self.unusedFields]
   
   def __computeFieldsName(self, fieldName):
     object = self.__objects[0]
     dicoField = {field.name:field for field in self.__fields}
-    if fieldName in self.__foreignKeyFields:
+    if fieldName in self.foreignKeyFields:
       relatedObject = getattr(object, fieldName)
       return type(relatedObject)._meta.verbose_name.title()
     return dicoField[fieldName].verbose_name

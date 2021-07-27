@@ -5,6 +5,7 @@ $("#PerfEmtpyBase").on('click', function(event) {perfEmptyBase(true)})
 $("#PerfPopulateBase").on('click', function(event) {perfPopulateBase(true, "empty")})
 $("#VisualizePdv").on('click', function(event) {visualizePdv()})
 $("#VisualizeVentes").on('click', function(event) {visualizeVentes()})
+$("#VisualizePdvXlsx").on('click', function(event) {VisualizePdvXlsx()})
 
 function perfEmptyBase (start) {
   if (start) {
@@ -80,7 +81,7 @@ function perfPopulateBase (start, method) {
       }
     },
     error : function(response) {
-      console.log(response)
+      console.log("error", response)
       $("div.loader").css({display:'none'})
     }
   })
@@ -94,39 +95,46 @@ function visualizeVentes () {
   visualizeGeneric('Ventes', scroll=false)
 }
 
+function VisualizePdvXlsx () {
+  visualizeGeneric('PdvSave', scroll=false, keep=true)
+}
 
 
 function visualizeGeneric(table, scroll=true) {
-  console.log(table, scroll)
-  $('section').empty()
   $("div.loader").css({display:'block'})
+  data = {"action":"perfImport"+table, "csrfmiddlewaretoken":csrfmiddlewaretoken}
   $.ajax({
     url : "/visio/performances/",
     type : 'get',
-    data : {"action":"perfImport"+table, "csrfmiddlewaretoken":csrfmiddlewaretoken},
+    data : data,
     success : function(response) {
-      console.log(response['titles'])
       columnsTitle = []
       $.each(response['titles'], function( _, value ) {
         columnsTitle.push({title: value})
       })
+      if (!response.hasOwnProperty("keep")) {
+        $('section').empty()
+      }
       buildTable (columnsTitle, response['values'], 'table' + table, scroll)
-      $("div.loader").css({display:'none'})
+      if ("follow" in response) {
+        visualizeGeneric(response['follow'])
+      } else {
+        $("div.loader").css({display:'none'})
+      }
     },
     error : function(response) {
-      console.log(response)
+      console.log("error", response)
       $("div.loader").css({display:'none'})
     }
   })
 }
 
 function buildTable (columnsTitle, values, tableId, scroll) {
-  $('section').empty()
   if (scroll) {
-    $('section').prepend('<table id="'+tableId+'" class="display" style="width:100%">')
+    $('section').append('<table id="'+tableId+'" class="display" style="width:100%">')
     $('#'+tableId).DataTable({"scrollX": scroll, data: values, columns: columnsTitle})
   } else {
-    $('section').prepend('<table id="'+tableId+'" class="display">')
+    $('section').append('<table id="'+tableId+'" class="display">')
     $('#'+tableId).DataTable({data: values, columns: columnsTitle})
   }
 }

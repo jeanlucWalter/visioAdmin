@@ -8,7 +8,7 @@ from django.shortcuts import redirect
 from django.contrib import auth
 from visio.dataModel.manageFromOldDatabase import manageFromOldDatabase
 from visio.dataModel.tableModel import tablePdv, tableVentes
-import json
+from visio.dataModel.readXlsx import ReadXlsx
 
 def home(request):
   if request.user.is_authenticated:
@@ -50,12 +50,25 @@ def performancesAction(action, get):
     else:
       return manageFromOldDatabase.populateDatabase(get['start'] == 'true', method=get['method'])
   elif action == "perfImportPdv":
-    return tablePdv.json if tablePdv else {'titles':[], 'values':[]}
+    return tablePdv.json if tablePdv else {'titles':[], 'values':[], 'tableIndex':[]}
+  elif action == "perfImportPdvSave":
+    if tablePdv.json:
+      table = dict(tablePdv.json, **{"follow":"PdvXls"})
+    return table if tablePdv else {'titles':[], 'values':[], 'tableIndex':[]}
+  elif action == "perfImportPdvXls":
+    dataXlsx = ReadXlsx("ReferentielVisio_V2_FI - 202101")
+    if dataXlsx.errors:
+      return {"errors":dataXlsx.errors}
+    if tablePdv.json:
+      json = {'titles':["status"] + tablePdv.json['titles'], 'values':dataXlsx.listValues(tablePdv.json['values']), 'tableIndex':tablePdv.json['tableIndex'], "keep":True}
+    return json if json else {'titles':[], 'values':[], 'tableIndex':[], "keep":True}
   elif action == "perfImportVentes":
-    print(tableVentes.json["titles"])
-    return tableVentes.json if tableVentes else {'titles':[], 'values':[]}
+    return tableVentes.json if tableVentes else {'titles':[], 'values':[], 'tableIndex':[]}
   else:
     return {}
 
 def login(request):
   return render(request, 'visio/login.html')
+
+dataXlsx = ReadXlsx("ReferentielVisio_V2_FI - 202101")
+dataXlsx.listValues(tablePdv.json['values'])
