@@ -17,7 +17,6 @@ function perfEmptyBase (start) {
     type : 'get',
     data : {"action":"perfEmptyBase", "csrfmiddlewaretoken":csrfmiddlewaretoken, 'start':start},
     success : function(response) {
-      console.log(response)
       if (response['errors'].length != 0) {
         if ($('section p').length >= numberOfLinesInMessage) {
           $('section p').last().remove()
@@ -53,7 +52,6 @@ function perfPopulateBase (start, method) {
     type : 'get',
     data : {"action":"perfPopulateBase", 'method':method, 'start':start, "csrfmiddlewaretoken":csrfmiddlewaretoken},
     success : function(response) {
-      console.log(response)
       if (response['errors'].length != 0) {
         if ($('section p').length >= numberOfLinesInMessage) {
           $('section p').last().remove()
@@ -112,9 +110,6 @@ function visualizeGeneric(table, scroll=true) {
       $.each(response['titles'], function( _, value ) {
         columnsTitle.push({title: value})
       })
-      if (!response.hasOwnProperty("keep")) {
-        $('section').empty()
-      }
       buildTable (columnsTitle, response['values'], 'table' + table, scroll)
       if ("follow" in response) {
         visualizeGeneric(response['follow'])
@@ -130,6 +125,7 @@ function visualizeGeneric(table, scroll=true) {
 }
 
 function buildTable (columnsTitle, values, tableId, scroll) {
+  $('section').empty()
   if (scroll) {
     $('section').append('<table id="'+tableId+'" class="display" style="width:100%">')
     $('#'+tableId).DataTable({"scrollX": scroll, data: values, columns: columnsTitle})

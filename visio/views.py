@@ -52,16 +52,10 @@ def performancesAction(action, get):
   elif action == "perfImportPdv":
     return tablePdv.json if tablePdv else {'titles':[], 'values':[], 'tableIndex':[]}
   elif action == "perfImportPdvSave":
-    if tablePdv.json:
-      table = dict(tablePdv.json, **{"follow":"PdvXls"})
-    return table if tablePdv else {'titles':[], 'values':[], 'tableIndex':[]}
-  elif action == "perfImportPdvXls":
-    dataXlsx = ReadXlsx("ReferentielVisio_V2_FI - 202101")
+    dataXlsx = ReadXlsx("ReferentielVisio_V2_FI - 202101", tablePdv)
     if dataXlsx.errors:
       return {"errors":dataXlsx.errors}
-    if tablePdv.json:
-      json = {'titles':["status"] + tablePdv.json['titles'], 'values':dataXlsx.listValues(tablePdv.json['values']), 'tableIndex':tablePdv.json['tableIndex'], "keep":True}
-    return json if json else {'titles':[], 'values':[], 'tableIndex':[], "keep":True}
+    return dataXlsx.json
   elif action == "perfImportVentes":
     return tableVentes.json if tableVentes else {'titles':[], 'values':[], 'tableIndex':[]}
   else:
@@ -69,6 +63,3 @@ def performancesAction(action, get):
 
 def login(request):
   return render(request, 'visio/login.html')
-
-dataXlsx = ReadXlsx("ReferentielVisio_V2_FI - 202101")
-dataXlsx.listValues(tablePdv.json['values'])
