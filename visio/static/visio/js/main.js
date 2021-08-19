@@ -6,6 +6,7 @@ $("#PerfPopulateBase").on('click', function(event) {perfPopulateBase(true, "empt
 $("#VisualizePdv").on('click', function(event) {visualizePdv()})
 $("#VisualizeVentes").on('click', function(event) {visualizeVentes()})
 $("#VisualizePdvXlsx").on('click', function(event) {VisualizePdvXlsx()})
+$("#VisualizeVentesXlsx").on('click', function(event) {visualizeVentesXlsx()})
 
 function perfEmptyBase (start) {
   if (start) {
@@ -97,6 +98,10 @@ function VisualizePdvXlsx () {
   visualizeGeneric('PdvSave', scroll=false, keep=true)
 }
 
+function visualizeVentesXlsx () {
+  console.log("visualizeVentesXlsx")
+  visualizeGeneric('VentesSave', scroll=false)
+}
 
 function visualizeGeneric(table, scroll=true) {
   $("div.loader").css({display:'block'})

@@ -8,7 +8,7 @@ from django.shortcuts import redirect
 from django.contrib import auth
 from visio.dataModel.manageFromOldDatabase import manageFromOldDatabase
 from visio.dataModel.tableModel import tablePdv, tableVentes
-from visio.dataModel.readXlsx import ReadXlsx
+from visio.dataModel.readXlsx import ReadXlsxRef, ReadXlsxVentes
 
 def home(request):
   if request.user.is_authenticated:
@@ -52,14 +52,18 @@ def performancesAction(action, get):
   elif action == "perfImportPdv":
     return tablePdv.json if tablePdv else {'titles':[], 'values':[], 'tableIndex':[]}
   elif action == "perfImportPdvSave":
-    dataXlsx = ReadXlsx("ReferentielVisio_V2_FI - 202101", tablePdv)
+    dataXlsx = ReadXlsxRef("ReferentielVisio_V2_FI - 202101", tablePdv)
     if dataXlsx.errors:
       return {"errors":dataXlsx.errors}
     return dataXlsx.json
   elif action == "perfImportVentes":
     return tableVentes.json if tableVentes else {'titles':[], 'values':[], 'tableIndex':[]}
+  elif action == "perfImportVentesSave":
+    print("perfImportVentesSave")
+    dataXlsx = ReadXlsxVentes("Volume_Visio_06_2021", tableVentes)
+    return dataXlsx.json if dataXlsx else {'titles':[], 'values':[], 'tableIndex':[]}
   else:
-    return {}
+    return {'titles':[], 'values':[], 'tableIndex':[]}
 
 def login(request):
   return render(request, 'visio/login.html')

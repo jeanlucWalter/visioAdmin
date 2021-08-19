@@ -3,7 +3,7 @@ from openpyxl import load_workbook
 from pathlib import Path
 from unidecode import unidecode
 
-class ReadXlsx:
+class ReadXlsxRef:
   path = "visio/dataValues/xlsx/"
   __sheetName = "ReferentielVisio"
   __keyField = "Code SAP initial"
@@ -138,8 +138,6 @@ class ReadXlsx:
         return codeItem in ["Autres métiers", "Plateforme de redist"]
     elif field in ["Ensemble", "Sous-Ensemble", "PDV"]:
       return codeItem.strip().replace("  ", " ") == dbaseItem.strip().replace("  ", " ")
-    print(field, codeItem, dbaseItem, type(codeItem), type(dbaseItem))
-    print(index, self.__titles[index + 1], str(codeItem), str(dbaseItem))
     raise(TypeError)
 
 
@@ -157,5 +155,137 @@ class ReadXlsx:
     elif codeItem == "NEGOCES AUTRES":
       return dbaseItem == "Autres"
     return unidecode(codeItem.lower()).replace("-", " ") == unidecode(dbaseItem.lower()).replace("-", " ")
+
+class ReadXlsxVentes:
+  path = "visio/dataValues/xlsx/"
+  __sheetName = {"siniat":"Volumes Siniat", "salsi":"Volumes Salsi"}
+  __keyField = {"siniat":["code pdv", 2], "salsi":["code pdv", 1]}
+  __dicoFields = {
+    "siniat":{"Plaques":"Siniat plaque",	"Cloisons":"Siniat cloison", "Doublages":"Siniat doublage",	"Enduit Prégy":"Pregy enduit",	"Mortier Prégy":"Pregy mortier"},
+    "salsi": {"Enduit Joint Salsi":"Salsi enduit",	"Mortier Salsi":"Salsi mortier"}
+  }
+
+  def __init__(self, fileName, tableVentes):
+    self.__tableIndex = tableVentes.json["tableIndex"]
+    self.__dbValues = tableVentes.json['values']
+    self.__titles = ["Status"] + tableVentes.json['titles']
+    self.__errors = []
+    self.__dictValues = {}
+    pathFile = Path.cwd() / f"{self.path}{fileName}.xlsx"
+    if pathFile.exists():
+        xlsxworkbook = load_workbook(pathFile, data_only=True)
+        try:
+          self.__sheets = {key:xlsxworkbook[sheetName] for key, sheetName in self.__sheetName.items()}
+        except:
+          self.__errors.append(f"L'onglet {self.__sheetName} n'existe pas.")
+        else:
+          self.__dictField = self.__readFields()
+          self.__dictValues = self.__readValues()
+    else:
+      self.__errors.append(f"Le fichier {fileName}.xlsx n'existe pas")
+
+  @property
+  def errors(self):
+    return self.__errors
+
+  @property
+  def listValues(self) -> list:
+    positionField = [key for key in self.__dictField["siniat"]] + [key for key in self.__dictField["salsi"]]
+    return [self.__computeListValues(list, positionField) for list in self.__dbValues] + self.__missingInRef()
+
+  @property
+  def json(self)->dict:
+    return {'titles':self.__titles, 'values': self.listValues, 'tableIndex':self.__tableIndex}
+
+  def __computeListValues(self, list, positionField):
+    pdvCode = list[0]
+    if pdvCode in self.__dictValues:
+      status = "Normal"
+      for indexXlsx in range(len(positionField)):
+        field = positionField[indexXlsx]
+        indexBase = self.__titles.index(field) - 1
+        if not list[indexBase]: list[indexBase] = "0.00"
+        if not self.__dictValues[pdvCode][indexXlsx]: self.__dictValues[pdvCode][indexXlsx] = 0.0
+        print("compute", list[indexBase], self.__dictValues[pdvCode][indexXlsx])
+        if abs(float(list[indexBase].replace(" ", "").replace(",", ".")) - self.__dictValues[pdvCode][indexXlsx]) > 0.01:
+          list[indexBase] = f'<i>{self.__formatNumber(list[indexBase])}</i> <b>{self.__formatNumber(self.__dictValues[pdvCode][indexXlsx])}</b>'
+          status = "Modifié"
+      return [status] + list
+    return ["Absent du fichier Xls"] + [self.__printInRed(list[index]) if index > 4 else list[index] for index in range(len(list))]
+
+  def __missingInRef(self):
+    missing = []
+    existingPdv = [listValues[0] for listValues in self.__dbValues]
+    for pdvCode, listValues in self.__dictValues.items():
+      # print(listValues)
+      newList = list(listValues)
+      if not pdvCode in existingPdv:
+        newList.insert(3, "")
+        # if all([True if type(element) == float else None for element in list]):
+        #   newList[3] = 
+
+
+        missing.append(["Absent du Référentiel", pdvCode, "", "", "", ""] + [self.__printInRed(self.__formatNumber(element)) for element in newList])
+    return missing
+
+    return missing
+
+  def __printInRed(self, string):
+    return '<span style="color:red">' + string + '</span>'
+
+  def __formatNumber(self, value):
+    if not value:
+      value = "0.0"
+    if type(value) == str:
+      value = float(value.replace(" ", "").replace(",", "."))
+    return f"{value:11,.2f}".replace(",", " ").replace(".", ",") if value != 0.0 else ""
+
+  def __indexFields(self):
+    indexField = {}
+    positionField = [key for key in self.__dictField["siniat"]] + [key for key in self.__dictField["salsi"]]
+    for field in self.__titles:
+      if field in positionField:
+        indexField[field] = positionField.index(field)
+    return indexField
+
+  def __readFields(self):
+    column, dictField = 1, {}
+    check = [sheet.cell(row=self.__keyField[key][1], column=column).value == self.__keyField[key][0] for key, sheet in self.__sheets.items()]
+    if all(check):
+      for key, sheet in self.__sheets.items():
+        row, column = self.__keyField[key][1], 2
+        dictField[key] = {}
+        while True:
+          fieldName = sheet.cell(row=row, column=column).value
+          if fieldName in self.__dicoFields[key]:
+            fieldForPrint = self.__dicoFields[key][fieldName]
+            dictField[key][fieldForPrint] = column
+          elif not fieldName:
+            break
+          column += 1
+    return dictField
+
+  def __readValues (self):
+    dictValue = {}
+    listValue = [None] * (len(self.__dictField["siniat"]) + len(self.__dictField["salsi"]))
+    for key, sheet in self.__sheets.items():
+      row = self.__keyField[key][1] + 1
+      while True:
+        cellValue = sheet.cell(row=row, column=1).value
+        pdvCode = str(cellValue) if cellValue else False
+        if pdvCode:
+          if not pdvCode in dictValue:
+            dictValue[pdvCode] = list(listValue)
+          startIndex = 0 if key == "siniat" else len(self.__dictField["siniat"])
+          index = 0
+          for _, column in self.__dictField[key].items():
+            dictValue[pdvCode][startIndex + index] = sheet.cell(row=row, column=column).value
+            index += 1
+        else:
+          break
+        row += 1
+    return dictValue
+
+
 
 
