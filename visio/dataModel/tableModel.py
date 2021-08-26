@@ -4,7 +4,6 @@ import re
 from json import load, dump
 
 class TableModel:
-
   def __init__(self, model, objects:list, unsuedField:list=[], interpretBoolean:dict={}, interpretRegX:dict={}):
     self.model = model
     self.__fields = model._meta.fields

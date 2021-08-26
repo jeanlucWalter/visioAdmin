@@ -57,10 +57,15 @@ class ManageFromOldDatabase:
   def populateDatabase(self, start:bool, method:str) -> 'list(str)':
     if start:
       ManageFromOldDatabase.connection = db.connect(
-      user = "visioOld",
-      password = "65dFXO[MThGYk9sa",
-      host = "localhost",
-      database = "visioOld"
+      # user = "visioOld",
+      # password = "65dFXO[MThGYk9sa",
+      # host = "localhost",
+      # database = "visioOld"
+      user = 'external',
+      password = 'qXOSPFDrNugm4Ubs',
+      host = '46.105.115.10', #https://all.fantasiapp.com',
+      port=3306,
+      database = 'visio.3.1.1.prod'
       )
       ManageFromOldDatabase.cursor = ManageFromOldDatabase.connection.cursor()
       self.dictPopulate = [

@@ -2,7 +2,6 @@ from sys import prefix
 from django.shortcuts import render
 from django.http import HttpResponse
 from rest_framework.response import Response
-# from django.template import loader
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.contrib import auth
@@ -52,6 +51,7 @@ def performancesAction(action, get):
   elif action == "perfImportPdv":
     return tablePdv.json if tablePdv else {'titles':[], 'values':[], 'tableIndex':[]}
   elif action == "perfImportPdvSave":
+    print("importPdv")
     dataXlsx = ReadXlsxRef("ReferentielVisio_V2_FI - 202101", tablePdv)
     if dataXlsx.errors:
       return {"errors":dataXlsx.errors}
@@ -59,7 +59,6 @@ def performancesAction(action, get):
   elif action == "perfImportVentes":
     return tableVentes.json if tableVentes else {'titles':[], 'values':[], 'tableIndex':[]}
   elif action == "perfImportVentesSave":
-    print("perfImportVentesSave")
     dataXlsx = ReadXlsxVentes("Volume_Visio_06_2021", tableVentes)
     return dataXlsx.json if dataXlsx else {'titles':[], 'values':[], 'tableIndex':[]}
   else:
